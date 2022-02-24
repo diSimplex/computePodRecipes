@@ -1,3 +1,10 @@
+# Add computePods builder specific directories
+cpf.yaml
+passwords.yaml
+pods
+users
+certAuthority
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
