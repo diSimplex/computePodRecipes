@@ -84,7 +84,7 @@ cekitImageDescriptions:
     repositories:
       - ./cekitModules
   context:
-    basedOn: debian:stable-slim
+    basedOn: python:slim
     packagesManager: apt-get
     description: A ConTeXt typesetting worker
     version: 1.0
