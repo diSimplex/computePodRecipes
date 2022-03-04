@@ -4,4 +4,5 @@
 #
 certificateAuthorityDir: certAuthority
 podsDir: pods
+natsDir: nats
 usersDir: users

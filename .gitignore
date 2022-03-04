@@ -2,6 +2,7 @@
 cpf.yaml
 passwords.yaml
 pods
+nats
 users
 certAuthority
 
