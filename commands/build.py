@@ -10,9 +10,9 @@ from cpcli.utils import runCommandWithNatsServer
 async def sendBuildConTeXtCmd(config, natsServer) :
   print("Building a ConTeXt document")
   buildData = {
-    'projectDir'    : 'sillyDir',
-    'taskName'      : 'a silly task',
-    'doc'           : 'silliestDoc.tex',
+    'projectDir'    : '/home/stg/ExpositionGit/diSimplex/testDocument',
+    'taskName'      : 'Typeset test document',
+    'doc'           : 'test.tex',
     'rsyncHostName' : platform.node(),
     'rsyncUserName' : os.getlogin()
   }
