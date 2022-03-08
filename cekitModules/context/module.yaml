@@ -9,6 +9,12 @@ name: context
 version: 1.0
 description: Installs the ConTeXt typesetting tools
 
+artifacts:
+  - name: chef-context-plugins.tar
+    path: chef-context-plugins.tar
+    target: chef-context-plugins.tar
+    description: The plugins for the context chefs
+
 execute:
   - script: installContext.sh
 
