@@ -12,13 +12,16 @@ rsyncProjectPath=$3
 echo "--------------------------------------------------------"
 echo $RSYNC_RSH
 echo "--------------------------------------------------------"
-echo rsync -av $rsyncProjectPath/* .
-rsync -av $rsyncProjectPath/* .
+echo rsync -av $rsyncProjectPath/ .
+rsync -av $rsyncProjectPath/ .
 
 pwd
 
 tree
 
 echo context $documentName
+/root/ConTeXt/tex/texmf-linux-64/bin/context doc/$documentName
+
+tree
 
 echo rsync -av . $rsyncProjectPath

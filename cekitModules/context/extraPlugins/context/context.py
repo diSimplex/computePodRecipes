@@ -19,7 +19,7 @@ import cpchef.plugins
 def registerPlugin(config, managers, natsClient) :
   print("Registering ConTeXt plugin via registerPlugin")
   chefUtils()
-  rsyncManger = managers['rsync']
+  rsyncManager = managers['rsync']
 
   @natsClient.subscribe("build.from.>")
   async def dealWithBuildRequest(subject, data) :
@@ -43,10 +43,21 @@ def registerPlugin(config, managers, natsClient) :
     rsyncProjectDir = projectDir
     if rsyncUserName is not None and rsyncHostName is not None :
       rsyncProjectDir = f"{rsyncUserName}@{rsyncHostName}:{projectDir}"
-    hostPublicKey=rsyncManager.getHostPublicKey(rsyncHostName)
-    privateKey="/config/playGround-rsync-rsa"
+    hostPublicKeyPath = rsyncManager.getHostPublicKeyPath(rsyncHostName)
+    privateKeyPath    = "/config/playGround-rsync-rsa"
     # check if hostPublicKey exists....
-    ???
+    if not os.path.exists(hostPublicKeyPath) :
+      await natsClient.sendMessage(
+        "build.result",
+        {
+          'result' : 'failed to build',
+          'details' : [
+            'rsync host has no public key'
+          ]
+        }
+      )
+      return
+
     taskDetails = {
       'cmd' : [
         '/bin/bash',
@@ -57,7 +68,7 @@ def registerPlugin(config, managers, natsClient) :
       ],
       'projectDir' : workingDir,
       'env'  : {
-        'RSYNC_RSH' : f"ssh -v -i {privateKey} -o UserKnownHostsFile={hostPublicKey}"
+        'RSYNC_RSH' : f"ssh -v -i {privateKeyPath} -o UserKnownHostsFile={hostPublicKeyPath}"
       }
     }
     taskLog = FileLogger("stdout", 5)
