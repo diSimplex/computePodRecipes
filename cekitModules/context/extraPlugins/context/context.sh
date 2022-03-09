@@ -20,7 +20,7 @@ pwd
 tree
 
 echo context $documentName
-/root/ConTeXt/tex/texmf-linux-64/bin/context doc/$documentName
+/root/ConTeXt/tex/texmf-linux-64/bin/context $documentName
 
 tree
 
