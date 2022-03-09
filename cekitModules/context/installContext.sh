@@ -1,6 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 
-# This shell script install the ConTeXt typesetting tools
+# This bash shell script install the ConTeXt typesetting tools
+
+# (We require BASH to be able to use pdm --pep582 below)
 
 echo "----------------------------------------------------------------------"
 echo $0
@@ -27,10 +29,10 @@ ls /tmp/artifacts
 
 tar xvf /tmp/artifacts/chef-context-plugins.tar
 
-pip install pdm
-
-pdm --pep582 >> /root/.bashrc
-
+#pip install pdm
+#
+#pdm --pep582 BASH >> /root/.bashrc
+#
 #. `pdm --pep582`
 #
 #cd /root/cpChef

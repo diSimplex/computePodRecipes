@@ -1,3 +1,5 @@
+*.tar*
+
 # Add computePods builder specific directories
 cpf.yaml
 passwords.yaml
