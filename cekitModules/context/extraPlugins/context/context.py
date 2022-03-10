@@ -68,7 +68,8 @@ def registerPlugin(config, managers, natsClient) :
       ],
       'projectDir' : workingDir,
       'env'  : {
-        'RSYNC_RSH' : f"ssh -v -i {privateKeyPath} -o UserKnownHostsFile={hostPublicKeyPath}"
+        #'RSYNC_RSH' : f"ssh -v -i {privateKeyPath} -o UserKnownHostsFile={hostPublicKeyPath}"
+        'RSYNC_RSH' : f"ssh -i {privateKeyPath} -o UserKnownHostsFile={hostPublicKeyPath}"
       }
     }
     taskLog = FileLogger("stdout", 5)
