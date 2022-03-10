@@ -1,0 +1,33 @@
+# This CEKit module describes how to install the TeXLive typesetting tools
+
+# This module:
+# - assumes a Debian based container,
+
+schema_version: 1
+
+name: texlive
+version: 1.0
+description: Installs the TeXLive typesetting tools
+
+artifacts:
+  - name: chef-texlive-plugins.tar
+    path: chef-texlive-plugins.tar
+    target: chef-texlive-plugins.tar
+    description: The plugins for the texlive chefs
+
+  - name: texlive.profile
+    path: texlive.profile
+    target: texlive.profile
+    description: the profile used to provide an unatteneded install of TeXLive
+
+execute:
+  - script: installTexLive.sh
+
+packages:
+  install:
+    - unzip
+    - wget
+    - rsync
+    - openssh-client
+    - tree
+    - less

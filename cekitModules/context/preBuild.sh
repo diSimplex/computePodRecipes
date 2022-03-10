@@ -1,3 +1,3 @@
 #!/bin/bash
 
-tar cvf chef-context-plugins.tar extraPlugins
+tar cvf chef-context-plugins.tar contextPlugins

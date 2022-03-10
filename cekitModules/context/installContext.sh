@@ -29,14 +29,3 @@ ls /tmp/artifacts
 
 tar xvf /tmp/artifacts/chef-context-plugins.tar
 
-#pip install pdm
-#
-#pdm --pep582 BASH >> /root/.bashrc
-#
-#. `pdm --pep582`
-#
-#cd /root/cpChef
-#
-#pdm install
-#
-#./scripts/installEditableCpchefCommand

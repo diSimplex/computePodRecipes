@@ -21,10 +21,10 @@ def registerPlugin(config, managers, natsClient) :
   chefUtils()
   rsyncManager = managers['rsync']
 
-  @natsClient.subscribe("build.from.>")
+  @natsClient.subscribe("build.from.context.>")
   async def dealWithBuildRequest(subject, data) :
     scriptsDir = os.path.abspath(os.path.dirname(__file__))
-    workingDir = os.path.join(os.getcwd(), 'tmpDir')
+    workingDir = os.path.join(os.getcwd(), 'tmpContextDir')
     if 'workingDir' in config :
       workingDir = config['workingDir']
     #await aioSystem(f"rm -rf {workingDir}")
