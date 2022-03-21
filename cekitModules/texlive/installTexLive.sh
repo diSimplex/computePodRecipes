@@ -13,21 +13,10 @@ cd
 
 mkdir TeXLive
 
-mkdir /tmp/texInst
-
-cd /tmp/texInst
-
-wget https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz
-
-tar zxvf install-tl-unx.tar.gz --strip-components=1
-
-./install-tl --profile /tmp/artifacts/texlive.profile
-
-cd /
-
-rm -rf /tmp/texInst
-
 ls /tmp/artifacts
+
+tar xvf /tmp/artifacts/texLive.tar.gz
 
 tar xvf /tmp/artifacts/chef-texlive-plugins.tar
 
+ls
