@@ -11,21 +11,16 @@ echo ""
 
 set -eux
 
+ls /tmp/artifacts
+
 cd
 
 mkdir ConTeXt
 
 cd ConTeXt
 
-wget http://lmtx.pragma-ade.nl/install-lmtx/context-linux-64.zip
-
-unzip context-linux-64.zip
-
-sh install.sh
+tar xvf /tmp/artifacts/context.tar.gz
 
 cd /
 
-ls /tmp/artifacts
-
 tar xvf /tmp/artifacts/chef-context-plugins.tar
-

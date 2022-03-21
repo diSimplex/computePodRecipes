@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# This bash script (re)creates a local copy of the ConTeX installation
+
+tarFile=context.tar.gz
+contextDir=/tmp/ConTeXt
+cekitDir=$(pwd)
+
+if test -f "$tarFile" ; then
+  echo "ConTeXt tar archive already exists..."
+  echo "... nothing to do"
+  exit 0
+fi
+
+SYSTEM=$(uname -s)
+CPU=$(uname -m)
+PLATFORM="unknown"
+
+case "$SYSTEM" in
+  Linux)
+    if command -v ldd >/dev/null && ldd --version 2>&1 | grep -E '^musl' >/dev/null
+    then
+      exit 1
+    else
+      PLATFORM="linux"
+    fi
+    ;;
+  *)
+    exit 1
+esac
+
+case "$CPU" in
+  i*86)
+    ;;
+  x86_64|ia64)
+    PLATFORM="$PLATFORM-64"
+    ;;
+  aarch64)
+    PLATFORM="$PLATFORM-aarch64"
+    ;;
+  *)
+    exit 1
+esac
+
+rm -rf $contextDir
+mkdir -p $contextDir
+
+cd $contextDir
+
+wget https://lmtx.pragma-ade.nl/install-lmtx/context-$PLATFORM.zip -O context.zip
+
+if test $? -ne 0
+then
+  rm context.zip
+  exit 1
+else
+  unzip context.zip
+  rm context.zip
+fi
+
+sh ./install.sh
+
+cd $(dirname "$contextDir")
+
+tar czvf $cekitDir/$tarFile $(basename "$contextDir")
+
+echo rm -rf $contextDir

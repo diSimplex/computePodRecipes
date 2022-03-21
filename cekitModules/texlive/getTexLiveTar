@@ -4,7 +4,7 @@
 
 tarFile=texLive.tar.gz
 texLiveDir=/tmp/TeXLive
-texInstDir=/tmp/texInts
+texInstDir=/tmp/texInst
 cekitDir=$(pwd)
 
 if test -f "$tarFile" ; then
