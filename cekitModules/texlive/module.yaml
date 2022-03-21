@@ -15,6 +15,11 @@ artifacts:
     target: chef-texlive-plugins.tar
     description: The plugins for the texlive chefs
 
+  - name: texLive.tar.gz
+    path: texLive.tar.gz
+    target: texLive.tar.gz
+    description: portable version of TeXLive
+
   - name: texlive.profile
     path: texlive.profile
     target: texlive.profile

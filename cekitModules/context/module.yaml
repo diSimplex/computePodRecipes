@@ -15,6 +15,11 @@ artifacts:
     target: chef-context-plugins.tar
     description: The plugins for the context chefs
 
+  - name: context.tar.gz
+    path: context.tar.gz
+    target: context.tar.gz
+    description: portable install of ConTeXt
+
 execute:
   - script: installContext.sh
 
