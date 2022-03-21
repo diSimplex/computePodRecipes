@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# This bash script (re)creates a local copy of the TeXLive installation
+
+tarFile=texLive.tar.gz
+texLiveDir=/tmp/TeXLive
+texInstDir=/tmp/texInts
+cekitDir=$(pwd)
+
+if test -f "$tarFile" ; then
+  echo "TeXLive tar archive already exists..."
+  echo "... nothing to do"
+  exit 0
+fi
+
+rm -rf $texLiveDir
+mkdir -p $texLiveDir
+
+rm -rf $texInstDir
+mkdir -p $texInstDir
+
+cd $texInstDir
+
+wget https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz
+
+tar xvf install-tl-unx.tar.gz --strip-components=1
+
+sed "s|==INSTALL-DIR==|$texLiveDir|" $cekitDir/texlive.profile > texlive.profile
+
+./install-tl --profile ./texlive.profile
+
+cd $(dirname "$texLiveDir")
+
+tar czvf $cekitDir/$tarFile $(basename "$texLiveDir")
+
+echo rm -rf $texInstDir
+echo rm -rf $texLiveDir
