@@ -15,10 +15,6 @@ ls /tmp/artifacts
 
 cd
 
-mkdir ConTeXt
-
-cd ConTeXt
-
 tar xvf /tmp/artifacts/context.tar.gz
 
 cd /

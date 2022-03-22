@@ -9,14 +9,12 @@ echo ""
 
 set -eux
 
-cd
-
-mkdir TeXLive
-
 ls /tmp/artifacts
+
+cd
 
 tar xvf /tmp/artifacts/texLive.tar.gz
 
-tar xvf /tmp/artifacts/chef-texlive-plugins.tar
+cd /
 
-ls
+tar xvf /tmp/artifacts/chef-texlive-plugins.tar

@@ -22,12 +22,3 @@ artifacts:
 
 execute:
   - script: installContext.sh
-
-packages:
-  install:
-    - unzip
-    - wget
-    - rsync
-    - openssh-client
-    - tree
-    - less

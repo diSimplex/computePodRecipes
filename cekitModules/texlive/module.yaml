@@ -27,12 +27,3 @@ artifacts:
 
 execute:
   - script: installTexLive.sh
-
-packages:
-  install:
-    - unzip
-    - wget
-    - rsync
-    - openssh-client
-    - tree
-    - less
