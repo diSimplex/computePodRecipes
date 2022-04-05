@@ -21,42 +21,54 @@ def registerPlugin(config, managers, natsClient) :
   chefUtils()
   rsyncManager = managers['rsync']
 
+  async def reportError(msg) :
+    await natsClient.sendMessage(
+      "build.result",
+      {
+        'result' : 'failed to build',
+        'details' : [ msg ]
+      }
+    )
+    return None
+
+  async def checkForValue(aKey, data, msg) :
+    if aKey in data and data[aKey] : return data[aKey]
+    await reportError(msg)
+    return None
+
   @natsClient.subscribe("build.from.context.>")
   async def dealWithBuildRequest(subject, data) :
     scriptsDir = os.path.abspath(os.path.dirname(__file__))
     workingDir = os.path.join(os.getcwd(), 'tmpContextDir')
     if 'workingDir' in config :
       workingDir = config['workingDir']
-    #await aioSystem(f"rm -rf {workingDir}")
     await aioMakedirs(workingDir, exist_ok=True)
-    projectDir = workingDir
-    if 'projectDir' in data : projectDir = data['projectDir']
-    #projectDir = os.path.abspath(os.path.expanduser(projectDir))
-    taskName = "aTask"
-    if 'taskName' in data : taskName = data['taskName']
-    documentName = taskName
-    if 'doc' in data : documentName = data['doc']
-    rsyncHostName = None
-    if 'rsyncHostName' in data : rsyncHostName = data['rsyncHostName']
-    rsyncUserName = None
-    if 'rsyncUserName' in data : rsyncUserName = data['rsyncUserName']
-    rsyncProjectDir = projectDir
-    if rsyncUserName is not None and rsyncHostName is not None :
-      rsyncProjectDir = f"{rsyncUserName}@{rsyncHostName}:{projectDir}"
+
+    if not (projectDir := await checkForValue('projectDir', data, "no projectDir specified")) : return
+    if not (documentName := await checkForValue('mainFile', data, "no mainFile specified")) : return
+    if not (rsyncHostName := await checkForValue('rsyncHostName', data, "rsyncHostName not specified")) : return
+    if not (rsyncUserName := await checkForValue('rsyncUserName', data, "rsyncUserName not specified")) : return
+    if not (srcDir := await checkForValue('srcDir', data, "no srcDir specified")) : return
+
+    rsyncProjectDir   = os.path.join(projectDir, srcDir)
+    rsyncProjectDir   = f"{rsyncUserName}@{rsyncHostName}:{rsyncProjectDir}"
     hostPublicKeyPath = rsyncManager.getHostPublicKeyPath(rsyncHostName)
     privateKeyPath    = "/config/playGround-rsync-rsa"
+
+    await natsClient.sendMessage('test', [
+      "Hello form dealWithBuildRequest",
+      projectDir,
+      srcDir,
+      rsyncProjectDir,
+      hostPublicKeyPath,
+      privateKeyPath
+    ])
+    taskName = "aTask"
+    if 'help' in data : taskName = data['help']
+
     # check if hostPublicKey exists....
     if not os.path.exists(hostPublicKeyPath) :
-      await natsClient.sendMessage(
-        "build.result",
-        {
-          'result' : 'failed to build',
-          'details' : [
-            'rsync host has no public key'
-          ]
-        }
-      )
-      return
+      return await reportError('rsync host has no public key')
 
     taskDetails = {
       'cmd' : [

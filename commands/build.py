@@ -5,22 +5,29 @@ import os
 import platform
 import yaml
 
-from cpcli.utils import runCommandWithNatsServer
+from cpcli.utils import runCommandWithNatsServer, \
+     getDataFromMajorDomo, postDataToMajorDomo
 
-async def sendBuildConTeXtCmd(config, natsServer) :
+async def sendBuildConTeXtCmd(buildData, config, natsServer) :
   print("Building a ConTeXt document")
-  buildData = {
-    'projectDir'    : '/home/stg/ExpositionGit/diSimplex/testDocument/doc',
-    'taskName'      : 'Typeset test document',
-    'doc'           : 'test.tex',
-    'rsyncHostName' : platform.node(),
-    'rsyncUserName' : os.getlogin()
-  }
-  await natsServer.sendMessage("build.from.context", buildData)
+  projectName = buildData['projectName']
+  targetName  = buildData['targetName']
+  await natsServer.sendMessage(
+    f"build.from.context.{projectName}.{targetName}",
+    #f"build.from.context.{projectName}",
+    buildData
+  )
 
 @click.command(short_help="build a ConTeXt document.")
-def build() :
-  print("Hello from builder")
-  runCommandWithNatsServer(sendBuildConTeXtCmd)
-  print("Bye from builder")
+@click.argument("projectName")
+@click.argument("target")
+@click.pass_context
+def build(ctx, projectname, target) :
+  print(f"Building {projectname}:{target}")
+  data = getDataFromMajorDomo(f'/project/buildTarget/{projectname}/{target}')
+  data['projectName']   = projectname
+  data['targetName']    = target
+  data['rsyncHostName'] = platform.node()
+  data['rsyncUserName'] = os.getlogin()
+  runCommandWithNatsServer(data, sendBuildConTeXtCmd)
 

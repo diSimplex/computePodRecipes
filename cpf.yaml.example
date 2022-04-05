@@ -39,6 +39,7 @@ podDefaults:
 #     - /a/host/directory/path:/a/container/directory/path:ro
 #   envs: # set in container (all)
 #    aKey: aValue
+#   shell: /bin/bash
 #   secrets: # set in container (all)
 #    - aSecretName # (see podman secret)
 #   maxLoadPerCPU: .5 # a value honoured by the computePods system
