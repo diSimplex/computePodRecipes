@@ -42,23 +42,39 @@ def registerPlugin(config, managers, natsClient) :
     workingDir = os.path.join(os.getcwd(), 'tmpContextDir')
     if 'workingDir' in config :
       workingDir = config['workingDir']
+    if not (projectName := await checkForValue('projectName', data, "no projectName specified")) : return
+    if not (targetName := await checkForValue('targetName', data, "no targetName specified")) : return
+    workingDir = os.path.join(workingDir, projectName, targetName)
     await aioMakedirs(workingDir, exist_ok=True)
 
     if not (projectDir := await checkForValue('projectDir', data, "no projectDir specified")) : return
+    if not (srcDir := await checkForValue('srcDir', data, "no srcDir specified")) : return
     if not (documentName := await checkForValue('mainFile', data, "no mainFile specified")) : return
     if not (rsyncHostName := await checkForValue('rsyncHostName', data, "rsyncHostName not specified")) : return
     if not (rsyncUserName := await checkForValue('rsyncUserName', data, "rsyncUserName not specified")) : return
-    if not (srcDir := await checkForValue('srcDir', data, "no srcDir specified")) : return
 
     rsyncProjectDir   = os.path.join(projectDir, srcDir)
     rsyncProjectDir   = f"{rsyncUserName}@{rsyncHostName}:{rsyncProjectDir}"
     hostPublicKeyPath = rsyncManager.getHostPublicKeyPath(rsyncHostName)
     privateKeyPath    = "/config/playGround-rsync-rsa"
 
+    if not (externals := await checkForValue('externals', data, "no externals supplied")) : return
+
+    texmfContentsPath = os.path.join(os.sep, 'tmp', 'context-chef', projectName, targetName, 'texmfContents')
+    await aioMakedirs(os.path.dirname(texmfContentsPath), exist_ok=True)
+    with open(texmfContentsPath, 'w') as texmfFile :
+      externals = sorted(externals)
+      for anExternal in externals :
+        texmfFile.write(f"{anExternal}\n")
+
     await natsClient.sendMessage('test', [
       "Hello form dealWithBuildRequest",
+      projectName,
+      targetName,
       projectDir,
       srcDir,
+      documentName,
+      texmfContentsPath,
       rsyncProjectDir,
       hostPublicKeyPath,
       privateKeyPath
@@ -74,14 +90,24 @@ def registerPlugin(config, managers, natsClient) :
       'cmd' : [
         '/bin/bash',
         os.path.join(scriptsDir, 'context.sh'),
-        documentName,
-        projectDir,
-        rsyncProjectDir
+        #documentName,
+        #projectDir,
+        #rsyncProjectDir
       ],
       'projectDir' : workingDir,
       'env'  : {
         #'RSYNC_RSH' : f"ssh -v -i {privateKeyPath} -o UserKnownHostsFile={hostPublicKeyPath}"
-        'RSYNC_RSH' : f"ssh -i {privateKeyPath} -o UserKnownHostsFile={hostPublicKeyPath}"
+        #'RSYNC_RSH' : f"ssh -i {privateKeyPath} -o UserKnownHostsFile={hostPublicKeyPath}",
+        'CHEF_workingDir'        : workingDir,
+        'CHEF_projectDir'        : projectDir,
+        'CHEF_srcDir'            : srcDir,
+        'CHEF_documentName'      : documentName,
+        'CHEF_texmfContentsPath' : texmfContentsPath,
+        'TEXMFHOME'              : os.path.join(os.sep, 'root', 'texmf'),
+        'CHEF_rsyncHostName'     : rsyncHostName,
+        'CHEF_rsyncUserName'     : rsyncUserName,
+        'CHEF_hostPublicKeyPath' : hostPublicKeyPath,
+        'CHEF_privateKeyPath'    : privateKeyPath,
       }
     }
     taskLog = FileLogger("stdout", 5)
