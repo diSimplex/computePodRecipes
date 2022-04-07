@@ -1,4 +1,4 @@
-# This file contains the build commands.
+# This file contains the context (typeset) commands.
 
 import click
 import os
@@ -7,6 +7,20 @@ import yaml
 
 from cpcli.utils import runCommandWithNatsServer, \
      getDataFromMajorDomo, postDataToMajorDomo
+
+@click.group(
+  short_help="Typeset documents using ConTeXt",
+  help="Typeset documents using ConTeXt"
+)
+def context() :
+  """Click group command use to collect all of the ConTeXt commands."""
+
+  pass
+
+def registerCommands(theCli) :
+  """Register the ConTeXt command with the main cli click group command."""
+
+  theCli.add_command(context)
 
 async def sendBuildConTeXtCmd(buildData, config, natsServer) :
   print("Building a ConTeXt document")
@@ -18,7 +32,10 @@ async def sendBuildConTeXtCmd(buildData, config, natsServer) :
     buildData
   )
 
-@click.command(short_help="build a ConTeXt document.")
+@context.command(
+  short_help="build a ConTeXt document.",
+  help="build a ConTeXt document."
+)
 @click.argument("projectName")
 @click.argument("target")
 @click.pass_context
@@ -31,3 +48,17 @@ def build(ctx, projectname, target) :
   data['rsyncUserName'] = os.getlogin()
   runCommandWithNatsServer(data, sendBuildConTeXtCmd)
 
+async def sendRebuildCmd(buildData, config, natsServer) :
+  await natsServer.sendMessage(
+    "build.getExternalDependencies.context",
+    buildData
+  )
+
+@context.command(
+  short_help="rebuild the local texmf modules",
+  help="rebuild the local texmf modules"
+)
+@click.pass_context
+def rebuildModules(ctx) :
+  print("Rebuilding local ConTeXt texmf modules")
+  runCommandWithNatsServer(None,sendRebuildCmd)
