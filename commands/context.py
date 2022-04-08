@@ -61,4 +61,7 @@ async def sendRebuildCmd(buildData, config, natsServer) :
 @click.pass_context
 def rebuildModules(ctx) :
   print("Rebuilding local ConTeXt texmf modules")
-  runCommandWithNatsServer(None,sendRebuildCmd)
+  data = {}
+  data['rsyncHostName'] = platform.node()
+  data['rsyncUserName'] = os.getlogin()
+  runCommandWithNatsServer(data,sendRebuildCmd)

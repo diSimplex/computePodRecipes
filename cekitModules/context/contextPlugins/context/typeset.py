@@ -1,6 +1,7 @@
-# This is ConTeXt ComputePods Chef plugin
+# This is a ConTeXt ComputePods Chef plugin
 
-# It provides the Chef with recipes on how to typeset ConTeXt documents....
+# It provides the Chef with recipes on how to typeset ConTeXt
+# documents....
 
 import asyncio
 import os
@@ -17,7 +18,7 @@ from cpchef.utils import chefUtils
 import cpchef.plugins
 
 def registerPlugin(config, managers, natsClient) :
-  print("Registering ConTeXt plugin via registerPlugin")
+  print("Registering ConTeXt typeset plugin via registerPlugin")
   chefUtils()
   rsyncManager = managers['rsync']
 
@@ -89,7 +90,7 @@ def registerPlugin(config, managers, natsClient) :
     taskDetails = {
       'cmd' : [
         '/bin/bash',
-        os.path.join(scriptsDir, 'context.sh'),
+        os.path.join(scriptsDir, 'typeset.sh'),
         #documentName,
         #projectDir,
         #rsyncProjectDir
