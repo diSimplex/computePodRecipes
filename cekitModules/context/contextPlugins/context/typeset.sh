@@ -39,8 +39,8 @@ rsync -av --files-from=$CHEF_texmfContentsPath $CHEF_rsyncUserName@$CHEF_rsyncHo
 echo cd $CHEF_workingDir
 cd $CHEF_workingDir
 
-echo rsync -av $rsyncProjectPath/ .
-rsync -av $rsyncProjectPath/ .
+echo rsync -Cav $rsyncProjectPath/ .
+rsync -Cav $rsyncProjectPath/ .
 echo "-------------------------------------------------------------------"
 
 pwd
@@ -66,6 +66,6 @@ pwd
 tree
 
 echo "-------------------------------------------------------------------"
-echo rsync -av . $rsyncProjectPath
-rsync -av . $rsyncProjectPath
+echo rsync -Cav . $rsyncProjectPath
+rsync -Cav . $rsyncProjectPath
 echo "-------------------------------------------------------------------"
