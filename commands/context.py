@@ -1,5 +1,6 @@
 # This file contains the context (typeset) commands.
 
+import asyncio
 import click
 import os
 import platform
@@ -26,11 +27,33 @@ async def sendBuildConTeXtCmd(buildData, config, natsServer) :
   print("Building a ConTeXt document")
   projectName = buildData['projectName']
   targetName  = buildData['targetName']
+
+  waitTillDone = asyncio.Event()
+
+  async def echoNatsMessages(aSubject, theSubject, theMsg) :
+    if isinstance(theMsg, str) and theMsg[1] != 'D' :
+      print(theMsg.strip("\""))
+    elif isinstance(theMsg, dict) :
+      if 'retCode' in theMsg :
+        print(f"completed with code: {theMsg['retCode']}")
+    if theSubject.startswith("done") or theSubject.startswith('failed') :
+        print("\n--------------------------------------------------------------------------------\n")
+        waitTillDone.set()
+
+  await natsServer.listenToSubject(
+    f"logger.{projectName}.{targetName}", echoNatsMessages
+  )
+  await natsServer.listenToSubject(
+    f"*.build.from.context.{projectName}.{targetName}", echoNatsMessages
+  )
+
   await natsServer.sendMessage(
     f"build.from.context.{projectName}.{targetName}",
     #f"build.from.context.{projectName}",
     buildData
   )
+
+  await waitTillDone.wait()
 
 @context.command(
   short_help="build a ConTeXt document.",
@@ -46,6 +69,8 @@ def build(ctx, projectname, target) :
   data['targetName']    = target
   data['rsyncHostName'] = platform.node()
   data['rsyncUserName'] = os.getlogin()
+  data['verbosity']     = ctx.obj['config']['verbosity']
+
   runCommandWithNatsServer(data, sendBuildConTeXtCmd)
 
 async def sendRebuildCmd(buildData, config, natsServer) :

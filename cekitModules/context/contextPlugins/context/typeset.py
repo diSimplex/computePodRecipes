@@ -54,6 +54,9 @@ def registerPlugin(config, managers, natsClient) :
     if not (rsyncHostName := await checkForValue('rsyncHostName', data, "rsyncHostName not specified")) : return
     if not (rsyncUserName := await checkForValue('rsyncUserName', data, "rsyncUserName not specified")) : return
 
+    verbosity = 0
+    if 'verbosity' in data : verbosity = data['verbosity']
+
     rsyncProjectDir   = os.path.join(projectDir, srcDir)
     rsyncProjectDir   = f"{rsyncUserName}@{rsyncHostName}:{rsyncProjectDir}"
     hostPublicKeyPath = rsyncManager.getHostPublicKeyPath(rsyncHostName)
@@ -78,7 +81,8 @@ def registerPlugin(config, managers, natsClient) :
       texmfContentsPath,
       rsyncProjectDir,
       hostPublicKeyPath,
-      privateKeyPath
+      privateKeyPath,
+      verbosity
     ])
     taskName = "aTask"
     if 'help' in data : taskName = data['help']
@@ -109,23 +113,25 @@ def registerPlugin(config, managers, natsClient) :
         'CHEF_rsyncUserName'     : rsyncUserName,
         'CHEF_hostPublicKeyPath' : hostPublicKeyPath,
         'CHEF_privateKeyPath'    : privateKeyPath,
+        'CHEF_verbosity'         : str(verbosity)
       }
     }
-    taskLog = FileLogger("stdout", 5)
-    #taskLog = MultiLogger([
-    #  FileLogger("stdout", 5),
-    #  FileLogger("/tmp/test.log", 5),
-    #  NatsLogger(natsClient, "logger", 5),
-    #])
+    #taskLog = FileLogger("stdout", 5)
+    taskLog = MultiLogger([
+      FileLogger("stdout", 5),
+      FileLogger(f"/tmp/chefLogs/{projectName}/{targetName}.log", 5),
+      NatsLogger(natsClient, f"logger.{projectName}.{targetName}", 5),
+    ])
     await taskLog.open()
 
-    await taskLog.write([
-      "\n",
-      "=========================================================\n",
-      "Running ConTeXt on:\n",
-    ])
-    await taskLog.write(yaml.dump(data))
-    await taskLog.write("\n")
+    if 0 < verbosity :
+      await taskLog.write([
+        "\n",
+        "=========================================================\n",
+        "Running ConTeXt on:\n",
+      ])
+      await taskLog.write(yaml.dump(data))
+      await taskLog.write("\n")
 
     workDone = asyncio.Event()
 
