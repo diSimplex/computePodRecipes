@@ -65,6 +65,7 @@ async def sendBuildConTeXtCmd(buildData, config, natsServer) :
 def build(ctx, projectname, target) :
   print(f"Building {projectname}:{target}")
   data = getDataFromMajorDomo(f'/project/buildTarget/{projectname}/{target}')
+  if data is None : return
   data['projectName']   = projectname
   data['targetName']    = target
   data['rsyncHostName'] = platform.node()
