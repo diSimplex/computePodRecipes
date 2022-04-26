@@ -34,17 +34,42 @@ def registerPlugin(config, managers, natsClient) :
   rsyncManager = managers['rsync']
 
   async def reportError(msg) :
+    logging.error(msg)
     await natsClient.sendMessage(
-      "build.result",
+      "failed.build.getExternalDependencies.context",
       {
-        'result' : 'failed to update the TEXMFHOME',
-        'details' : [ msg ]
+        'message' : 'failed to update the TEXMFHOME',
+        'exception' : msg
       }
     )
-    return None
 
-  async def checkForValue(aKey, data, msg) :
+  async def reportDone(msg) :
+    logging.info(msg)
+    await natsClient.sendMessage(
+      "done.build.getExternalDependencies.context",
+      {
+        'retCode' : 0,
+        'message' : msg
+      }
+    )
+
+  async def reportInfo(msg) :
+    logging.info(msg)
+    await natsClient.sendMessage(
+      "logger.getExternalDependencies.context",
+      msg
+    )
+
+  async def reportDebug(msg) :
+    logging.debug(msg)
+    await natsClient.sendMessage(
+      "logger.getExternalDependencies.context",
+      msg
+    )
+
+  async def checkForValue(aKey, data, default, msg) :
     if aKey in data and data[aKey] : return data[aKey]
+    if default : return default
     await reportError(msg)
     return None
 
@@ -52,25 +77,28 @@ def registerPlugin(config, managers, natsClient) :
   async def dealWithBuildRequest(subject, data) :
     if subject[3] != 'context' : return
 
-    logging.info("starting to update the ConTeXt modules in texmf")
+    await reportInfo("starting to update the ConTeXt modules in texmf")
+    await reportDebug(yaml.dump(data))
 
     scriptsDir = os.path.abspath(os.path.dirname(__file__))
 
     for aPkgName, aPkgDef in data.items() :
-      if not (projectDir   := await checkForValue('projectDir',   aPkgDef, "no projectDir specified")) : return
-      if not (installDir   := await checkForValue('installDir',   aPkgDef, "no installDir specified")) : return
-      if not (manualUpdate := await checkForValue('manualUpdate', aPkgDef, "no projectDir specified")) : return
+      if not (projectDir   := await checkForValue('projectDir',   aPkgDef, None,  "no projectDir specified")) : return
+      if not (installDir   := await checkForValue('installDir',   aPkgDef, None,  "no installDir specified")) : return
+      if not (manualUpdate := await checkForValue('manualUpdate', aPkgDef, False, "no projectDir specified")) : return
       if manualUpdate :
         pkgDir = os.path.join(projectDir, installDir)
       else :
-        if not (outputDir    := await checkForValue('outputDir',    aPkgDef, "no outputDir specified")) : return
+        if not (outputDir    := await checkForValue('outputDir',    aPkgDef, None, "no outputDir specified")) : return
         pkgDir = os.path.join(projectDir, outputDir)
 
-      moduleDir = os.path.join(texmfhomeDir, installDir)
+      moduleDir = texmfhomeDir
+      if installDir != 'texmf' :
+        moduleDir = os.path.join(texmfhomeDir, installDir)
       await aioMakedirs(moduleDir, exist_ok=True)
 
-      if not (rsyncUser    := await checkForValue('rsyncUser',    aPkgDef, "no rsyncUser specified")) : return
-      if not (rsyncHost    := await checkForValue('rsyncHost',    aPkgDef, "no rsyncHost specified")) : return
+      if not (rsyncUser    := await checkForValue('rsyncUser',    aPkgDef, None, "no rsyncUser specified")) : return
+      if not (rsyncHost    := await checkForValue('rsyncHost',    aPkgDef, None, "no rsyncHost specified")) : return
 
       origPath = f"{rsyncUser}@{rsyncHost}:{pkgDir}{os.sep}"
 
@@ -80,6 +108,8 @@ def registerPlugin(config, managers, natsClient) :
         origPath,
         moduleDir
       ]
+
+      await reportDebug(" ".join(rsyncCmd))
 
       hostPublicKeyPath = rsyncManager.getHostPublicKeyPath(rsyncHost)
       rsyncEnv = {
@@ -95,23 +125,24 @@ def registerPlugin(config, managers, natsClient) :
 
       stdout, stderr = await rsyncProc.communicate()
 
-      logging.info(f'rsync ({aPkgName}) exited with {rsyncProc.returncode}')
+      await reportInfo(f'rsync ({aPkgName}) exited with {rsyncProc.returncode}')
       if stdout:
-        logging.debug("\n".join([
+        await reportDebug("\n".join([
           aPkgName,
           "----------------rsync stdout------------------------",
           stdout.decode(),
           "----------------rsync stdout------------------------",
         ]))
       if stderr:
-        logging.debug("\n".join([
+        await reportDebug("\n".join([
           aPkgName,
           "----------------rsync stderr------------------------",
           stderr.decode(),
           "----------------rsync stderr------------------------",
         ]))
       if rsyncProc.returncode != 0 :
-        logging.info(f"Could not rsync module files for {aPkgName}\n  from {origPath}\n  to {moduleDir}")
+        await reprotError(f"Could not rsync module files for {aPkgName}\n  from {origPath}\n  to {moduleDir}")
+        return
 
     updateCmd = [
       contextCmdPath,
@@ -126,25 +157,26 @@ def registerPlugin(config, managers, natsClient) :
 
     stdout, stderr = await updateProc.communicate()
 
-    logging.info(f'context texmf update exited with {updateProc.returncode}')
+    await reportInfo(f'context texmf update exited with {updateProc.returncode}')
     if stdout:
-      logging.debug("\n".join([
+      await reportDebug("\n".join([
         'update ConTeXt modules in texmf',
         "----------------update stdout------------------------",
         stdout.decode(),
         "----------------update stdout------------------------",
       ]))
     if stderr:
-      logging.debug("\n".join([
+      await reportDebug("\n".join([
         'update ConTeXt modules in texmf',
         "----------------update stderr------------------------",
         stderr.decode(),
         "----------------update stderr------------------------",
       ]))
     if updateProc.returncode != 0 :
-      logging.info(f"Could not update the ConTeXt modules in texmf")
+      await reportError(f"Could not update the ConTeXt modules in texmf")
+      return
 
-    logging.info("Finished updating ConTeXt modules in texmf")
+    await reportDone("Finished updating ConTeXt modules in texmf")
 
     return
 

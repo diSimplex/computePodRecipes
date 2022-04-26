@@ -36,6 +36,13 @@ async def sendBuildConTeXtCmd(buildData, config, natsServer) :
     elif isinstance(theMsg, dict) :
       if 'retCode' in theMsg :
         print(f"completed with code: {theMsg['retCode']}")
+      if 'message' in theMsg :
+        print(f"Message: {theMsg['message']}")
+      if 'exception' in theMsg :
+        print(f"Exception: {theMsg['exception']}")
+      if 'traceback' in theMsg :
+        print(f"Traceback: \n{theMsg['traceback']}")
+
     if theSubject.startswith("done") or theSubject.startswith('failed') :
         print("\n--------------------------------------------------------------------------------\n")
         waitTillDone.set()
@@ -75,10 +82,40 @@ def build(ctx, projectname, target) :
   runCommandWithNatsServer(data, sendBuildConTeXtCmd)
 
 async def sendRebuildCmd(buildData, config, natsServer) :
+  print("Rebuilding the ConTeXt module dependencies")
+
+  waitTillDone = asyncio.Event()
+
+  async def echoNatsMessages(aSubject, theSubject, theMsg) :
+    if isinstance(theMsg, str) and theMsg[1] != 'D' :
+      print(theMsg.strip("\""))
+    elif isinstance(theMsg, dict) :
+      if 'retCode' in theMsg :
+        print(f"completed with code: {theMsg['retCode']}")
+      if 'message' in theMsg :
+        print(f"Message: {theMsg['message']}")
+      if 'exception' in theMsg :
+        print(f"Exception: {theMsg['exception']}")
+      if 'traceback' in theMsg :
+        for aLine in theMsg['traceback'] : print(aLine)
+
+    if theSubject.startswith("done") or theSubject.startswith('failed') :
+        print("\n--------------------------------------------------------------------------------\n")
+        waitTillDone.set()
+
+  await natsServer.listenToSubject(
+    f"logger.getExternalDependencies.context", echoNatsMessages
+  )
+  await natsServer.listenToSubject(
+    f"*.build.getExternalDependencies.context", echoNatsMessages
+  )
+
   await natsServer.sendMessage(
     "build.getExternalDependencies.context",
     buildData
   )
+
+  await waitTillDone.wait()
 
 @context.command(
   short_help="rebuild the local texmf modules",
