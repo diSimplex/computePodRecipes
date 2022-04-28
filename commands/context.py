@@ -78,7 +78,7 @@ def build(ctx, clean, projectname, target) :
   if data is None : return
   data['projectName']   = projectname
   data['targetName']    = target
-  data['clean']         = clean
+  data['clean']         = str(clean)
   data['rsyncHostName'] = platform.node()
   data['rsyncUserName'] = os.getlogin()
   data['verbosity']     = ctx.obj['config']['verbosity']
@@ -132,6 +132,6 @@ async def sendRebuildCmd(buildData, config, natsServer) :
 def rebuildModules(ctx, clean) :
   print("Rebuilding local ConTeXt texmf modules")
   data = {
-    'clean' : clean
+    'clean' : str(clean)
   }
   runCommandWithNatsServer(data, sendRebuildCmd)

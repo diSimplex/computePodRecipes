@@ -54,7 +54,7 @@ def registerPlugin(config, managers, natsClient) :
     if not (documentName := await checkForValue('mainFile', data, None, "no mainFile specified")) : return
     if not (rsyncHostName := await checkForValue('rsyncHostName', data, None, "rsyncHostName not specified")) : return
     if not (rsyncUserName := await checkForValue('rsyncUserName', data, None, "rsyncUserName not specified")) : return
-    if not (clean := await checkForValue('clean', data, False, "clean not specified")) : return
+    if not (clean := await checkForValue('clean', data, str(False), "clean not specified")) : return
 
     verbosity = 0
     if 'verbosity' in data : verbosity = data['verbosity']

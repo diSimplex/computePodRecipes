@@ -84,8 +84,8 @@ def registerPlugin(config, managers, natsClient) :
 
     scriptsDir = os.path.abspath(os.path.dirname(__file__))
 
-    if not (clean := await checkForValue('clean', data, False, "no clean specified")) : return
-    if clean :
+    if not (clean := await checkForValue('clean', data, str(False), "no clean specified")) : return
+    if clean == str(True) :
       await reportInfo("Cleaning up texmf home directory")
       await aioRmTree(texmfhomeDir)
 
