@@ -66,15 +66,19 @@ async def sendBuildConTeXtCmd(buildData, config, natsServer) :
   short_help="build a ConTeXt document.",
   help="build a ConTeXt document."
 )
+@click.option('--clean', is_flag=True, default=False,
+  help="Clean up working directory before starting [default: False]"
+)
 @click.argument("projectName")
 @click.argument("target")
 @click.pass_context
-def build(ctx, projectname, target) :
+def build(ctx, clean, projectname, target) :
   print(f"Building {projectname}:{target}")
   data = getDataFromMajorDomo(f'/project/buildTarget/{projectname}/{target}')
   if data is None : return
   data['projectName']   = projectname
   data['targetName']    = target
+  data['clean']         = clean
   data['rsyncHostName'] = platform.node()
   data['rsyncUserName'] = os.getlogin()
   data['verbosity']     = ctx.obj['config']['verbosity']
@@ -121,7 +125,13 @@ async def sendRebuildCmd(buildData, config, natsServer) :
   short_help="rebuild the local texmf modules",
   help="rebuild the local texmf modules"
 )
+@click.option('--clean', is_flag=True, default=False,
+  help="Clean up working directory before starting [default: False]"
+)
 @click.pass_context
-def rebuildModules(ctx) :
+def rebuildModules(ctx, clean) :
   print("Rebuilding local ConTeXt texmf modules")
-  runCommandWithNatsServer(None, sendRebuildCmd)
+  data = {
+    'clean' : clean
+  }
+  runCommandWithNatsServer(data, sendRebuildCmd)

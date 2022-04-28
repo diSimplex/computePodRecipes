@@ -24,6 +24,7 @@ if [ $CHEF_verbosity -gt "0" ]; then
   echo "       CHEF_workingDir $CHEF_workingDir"
   echo "       CHEF_projectDir $CHEF_projectDir"
   echo "           CHEF_srcDir $CHEF_srcDir"
+  echo "        CHEF_outputDir $CHEF_outputDir"
   echo "     CHEF_documentName $CHEF_documentName"
   echo "CHEF_texmfContentsPath $CHEF_texmfContentsPath"
   echo "             TEXMFHOME $TEXMFHOME"
@@ -32,20 +33,27 @@ if [ $CHEF_verbosity -gt "0" ]; then
   echo "CHEF_hostPublicKeyPath $CHEF_hostPublicKeyPath"
   echo "   CHEF_privateKeyPath $CHEF_privateKeyPath"
   echo "        CHEF_verbosity $CHEF_verbosity"
+  echo "            CHEF_clean $CHEF_clean"
   echo "-------------------------------------------------------------------"
 fi
 
 verboseDo echo mkdir -p $TEXMFHOME
 mkdir -p $TEXMFHOME
 
-verboseDo echo cd $TEXMFHOME
-cd $TEXMFHOME
+if [ "$CHEF_clean" == "True" ]; then
+  verboseDo echo Cleaning up working directory
+  verboseDo echo rm -rf $CHEF_workingDir
+  rm -rf $CHEF_workingDir
+fi
+
+verboseDo echo mkdir -p $CHEF_workingDir
+mkdir -p $CHEF_workingDir
 
 verboseDo echo cd $CHEF_workingDir
 cd $CHEF_workingDir
 
-echo rsync -Cav $rsyncProjectPath/ .
-rsync -Cav $rsyncProjectPath/ .
+echo rsync -Cav --delete $rsyncProjectPath/ .
+rsync -Cav --delete $rsyncProjectPath/ .
 
 verboseDo echo "-------------------------------------------------------------------"
 
@@ -55,13 +63,19 @@ verboseDo tree
 
 echo "-------------------------------------------------------------------"
 
-verboseDo echo cd $CHEF_srcDir
-cd $CHEF_srcDir
+baseDir=$PWD
+documentPath=$baseDir/$CHEF_srcDir/$CHEF_documentName
+
+verboseDo echo mkdir -p $CHEF_outputDir
+mkdir -p $CHEF_outputDir
+
+verboseDo echo cd $CHEF_outputDir
+cd $CHEF_outputDir
 
 verboseDo pwd
 
-echo context $CHEF_documentName
-/root/ConTeXt/tex/texmf-linux-64/bin/context $CHEF_documentName
+echo context $documentPath
+/root/ConTeXt/tex/texmf-linux-64/bin/context $documentPath
 
 echo "-------------------------------------------------------------------"
 
@@ -74,5 +88,5 @@ verboseDo tree
 
 verboseDo echo "-------------------------------------------------------------------"
 
-echo rsync -Cav . $rsyncProjectPath
-rsync -Cav . $rsyncProjectPath
+echo rsync -Cav ./$CHEF_outputDir $rsyncProjectPath
+rsync -Cav ./$CHEF_output $rsyncProjectPath

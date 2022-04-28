@@ -6,12 +6,14 @@
 import asyncio
 import logging
 import os
+import shutil
 import signal
 import yaml
 from aiofiles.os import wrap
 
 aioMakedirs = wrap(os.makedirs)
 aioSystem   = wrap(os.system)
+aioRmTree   = wrap(shutil.rmtree)
 
 from cputils.debouncingTaskRunner import \
   NatsLogger, FileLogger, MultiLogger, DebouncingTaskRunner
@@ -82,7 +84,14 @@ def registerPlugin(config, managers, natsClient) :
 
     scriptsDir = os.path.abspath(os.path.dirname(__file__))
 
-    for aPkgName, aPkgDef in data.items() :
+    if not (clean := await checkForValue('clean', data, False, "no clean specified")) : return
+    if clean :
+      await reportInfo("Cleaning up texmf home directory")
+      await aioRmTree(texmfhomeDir)
+
+    if not (extDeps := await checkForValue('extDeps', data, None, "no external dependencies specified")) : return
+
+    for aPkgName, aPkgDef in extDeps.items() :
       if not (projectDir   := await checkForValue('projectDir',   aPkgDef, None,  "no projectDir specified")) : return
       if not (installDir   := await checkForValue('installDir',   aPkgDef, None,  "no installDir specified")) : return
       if not (manualUpdate := await checkForValue('manualUpdate', aPkgDef, False, "no projectDir specified")) : return
@@ -99,6 +108,7 @@ def registerPlugin(config, managers, natsClient) :
 
       if not (rsyncUser    := await checkForValue('rsyncUser',    aPkgDef, None, "no rsyncUser specified")) : return
       if not (rsyncHost    := await checkForValue('rsyncHost',    aPkgDef, None, "no rsyncHost specified")) : return
+
 
       origPath = f"{rsyncUser}@{rsyncHost}:{pkgDir}{os.sep}"
 

@@ -32,8 +32,9 @@ def registerPlugin(config, managers, natsClient) :
     )
     return None
 
-  async def checkForValue(aKey, data, msg) :
+  async def checkForValue(aKey, data, default, msg) :
     if aKey in data and data[aKey] : return data[aKey]
+    if default : return default
     await reportError(msg)
     return None
 
@@ -41,18 +42,19 @@ def registerPlugin(config, managers, natsClient) :
   async def dealWithBuildRequest(subject, data) :
     scriptsDir = os.path.abspath(os.path.dirname(__file__))
     workingDir = os.path.join(os.getcwd(), 'tmpContextDir')
-    if 'workingDir' in config :
-      workingDir = config['workingDir']
-    if not (projectName := await checkForValue('projectName', data, "no projectName specified")) : return
-    if not (targetName := await checkForValue('targetName', data, "no targetName specified")) : return
+    if 'workingDir' in config : workingDir = config['workingDir']
+    if not (projectName := await checkForValue('projectName', data, None, "no projectName specified")) : return
+    if not (targetName := await checkForValue('targetName', data, None, "no targetName specified")) : return
     workingDir = os.path.join(workingDir, projectName, targetName)
     await aioMakedirs(workingDir, exist_ok=True)
 
-    if not (projectDir := await checkForValue('projectDir', data, "no projectDir specified")) : return
-    if not (srcDir := await checkForValue('srcDir', data, "no srcDir specified")) : return
-    if not (documentName := await checkForValue('mainFile', data, "no mainFile specified")) : return
-    if not (rsyncHostName := await checkForValue('rsyncHostName', data, "rsyncHostName not specified")) : return
-    if not (rsyncUserName := await checkForValue('rsyncUserName', data, "rsyncUserName not specified")) : return
+    if not (projectDir := await checkForValue('projectDir', data, None, "no projectDir specified")) : return
+    if not (srcDir := await checkForValue('srcDir', data, None, "no srcDir specified")) : return
+    if not (outputDir := await checkForValue('outputDir', data, None, "no outputDir specified")) : return
+    if not (documentName := await checkForValue('mainFile', data, None, "no mainFile specified")) : return
+    if not (rsyncHostName := await checkForValue('rsyncHostName', data, None, "rsyncHostName not specified")) : return
+    if not (rsyncUserName := await checkForValue('rsyncUserName', data, None, "rsyncUserName not specified")) : return
+    if not (clean := await checkForValue('clean', data, False, "clean not specified")) : return
 
     verbosity = 0
     if 'verbosity' in data : verbosity = data['verbosity']
@@ -62,7 +64,7 @@ def registerPlugin(config, managers, natsClient) :
     hostPublicKeyPath = rsyncManager.getHostPublicKeyPath(rsyncHostName)
     privateKeyPath    = "/config/playGround-rsync-rsa"
 
-    if not (externals := await checkForValue('externals', data, "no externals supplied")) : return
+    if not (externals := await checkForValue('externals', data, None, "no externals supplied")) : return
 
     texmfContentsPath = os.path.join(os.sep, 'tmp', 'context-chef', projectName, targetName, 'texmfContents')
     await aioMakedirs(os.path.dirname(texmfContentsPath), exist_ok=True)
@@ -77,12 +79,14 @@ def registerPlugin(config, managers, natsClient) :
       targetName,
       projectDir,
       srcDir,
+      outputDir,
       documentName,
       texmfContentsPath,
       rsyncProjectDir,
       hostPublicKeyPath,
       privateKeyPath,
-      verbosity
+      verbosity,
+      clean
     ])
     taskName = "aTask"
     if 'help' in data : taskName = data['help']
@@ -106,6 +110,7 @@ def registerPlugin(config, managers, natsClient) :
         'CHEF_workingDir'        : workingDir,
         'CHEF_projectDir'        : projectDir,
         'CHEF_srcDir'            : srcDir,
+        'CHEF_outputDir'         : outputDir,
         'CHEF_documentName'      : documentName,
         'CHEF_texmfContentsPath' : texmfContentsPath,
         'TEXMFHOME'              : os.path.join(os.sep, 'root', 'texmf'),
@@ -113,7 +118,8 @@ def registerPlugin(config, managers, natsClient) :
         'CHEF_rsyncUserName'     : rsyncUserName,
         'CHEF_hostPublicKeyPath' : hostPublicKeyPath,
         'CHEF_privateKeyPath'    : privateKeyPath,
-        'CHEF_verbosity'         : str(verbosity)
+        'CHEF_verbosity'         : str(verbosity),
+        'CHEF_clean'             : str(clean)
       }
     }
     #taskLog = FileLogger("stdout", 5)
