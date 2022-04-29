@@ -1,0 +1,20 @@
+# This CEKit module describes how to install the GCC compilation tools
+
+# This module:
+# - assumes a Debian based container,
+
+# consider using python base waf see: https://waf.io/
+
+schema_version: 1
+
+name: gcc
+version: 1.0
+description: Installs the GCC compilation tools
+
+packages:
+  manager: apk
+  install:
+    - gcc
+    - gpp
+    - make
+    - ninja-build
