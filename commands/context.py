@@ -36,6 +36,8 @@ async def sendBuildConTeXtCmd(buildData, config, natsServer) :
     elif isinstance(theMsg, dict) :
       if 'retCode' in theMsg :
         print(f"completed with code: {theMsg['retCode']}")
+      if 'elapsedTime' in theMsg :
+        print(f"completed in {str(theMsg['elapsedTime'])}")
       if 'message' in theMsg :
         print(f"Message: {theMsg['message']}")
       if 'exception' in theMsg :
@@ -69,16 +71,20 @@ async def sendBuildConTeXtCmd(buildData, config, natsServer) :
 @click.option('--clean', is_flag=True, default=False,
   help="Clean up working directory before starting [default: False]"
 )
+@click.option('--live',  is_flag=True, default=False,
+  help="Provide live logging of build [default: False]"
+)
 @click.argument("projectName")
 @click.argument("target")
 @click.pass_context
-def build(ctx, clean, projectname, target) :
+def build(ctx, clean, live, projectname, target) :
   print(f"Building {projectname}:{target}")
   data = getDataFromMajorDomo(f'/project/buildTarget/{projectname}/{target}')
   if data is None : return
   data['projectName']   = projectname
   data['targetName']    = target
   data['clean']         = str(clean)
+  data['live']          = str(live)
   data['rsyncHostName'] = platform.node()
   data['rsyncUserName'] = os.getlogin()
   data['verbosity']     = ctx.obj['config']['verbosity']
@@ -96,6 +102,8 @@ async def sendRebuildCmd(buildData, config, natsServer) :
     elif isinstance(theMsg, dict) :
       if 'retCode' in theMsg :
         print(f"completed with code: {theMsg['retCode']}")
+      if 'elapsedTime' in theMsg :
+        print(f"completed in {str(theMsg['elapsedTime'])}")
       if 'message' in theMsg :
         print(f"Message: {theMsg['message']}")
       if 'exception' in theMsg :

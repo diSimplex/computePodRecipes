@@ -55,6 +55,7 @@ def registerPlugin(config, managers, natsClient) :
     if not (rsyncHostName := await checkForValue('rsyncHostName', data, None, "rsyncHostName not specified")) : return
     if not (rsyncUserName := await checkForValue('rsyncUserName', data, None, "rsyncUserName not specified")) : return
     if not (clean := await checkForValue('clean', data, str(False), "clean not specified")) : return
+    if not (live := await checkForValue('live', data, str(False), "live logging not specified")) : return
 
     verbosity = 0
     if 'verbosity' in data : verbosity = data['verbosity']
@@ -86,7 +87,8 @@ def registerPlugin(config, managers, natsClient) :
       hostPublicKeyPath,
       privateKeyPath,
       verbosity,
-      clean
+      clean,
+      live
     ])
     taskName = "aTask"
     if 'help' in data : taskName = data['help']
@@ -122,12 +124,16 @@ def registerPlugin(config, managers, natsClient) :
         'CHEF_clean'             : str(clean)
       }
     }
-    #taskLog = FileLogger("stdout", 5)
-    taskLog = MultiLogger([
-      FileLogger("stdout", 5),
-      FileLogger(f"/tmp/chefLogs/{projectName}/{targetName}.log", 5),
-      NatsLogger(natsClient, f"logger.{projectName}.{targetName}", 5),
-    ])
+    logFilePath = f"/tmp/chefLogs/{projectName}/{targetName}.log"
+    if live == str(True) :
+      taskLog = MultiLogger([
+        FileLogger("stdout", 5),
+        FileLogger(logFilePath, 5),
+        NatsLogger(natsClient, f"logger.{projectName}.{targetName}", 5),
+      ])
+    else :
+      taskLog = FileLogger(logFilePath, 5)
+
     await taskLog.open()
 
     if 0 < verbosity :
@@ -151,8 +157,12 @@ def registerPlugin(config, managers, natsClient) :
     )
     await theTask.reStart()
     await workDone.wait()
+    returnCode  = theTask.getReturnCode()
+    elapsedTime = theTask.getElapsedTime()
+    await taskLog.write(f"\nreturn code: {returnCode}\nelapsed time: {str(elapsedTime)}")
     await natsClient.sendMessage('done.'+subject[0], {
-      'retCode' : theTask.getReturnCode()
+      'retCode'     : returnCode,
+      'elapsedTime' : str(elapsedTime)
     })
     print("ALL DONE!")
 
