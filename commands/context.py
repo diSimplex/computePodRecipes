@@ -74,17 +74,27 @@ async def sendBuildConTeXtCmd(buildData, config, natsServer) :
 @click.option('--live',  is_flag=True, default=False,
   help="Provide live logging of build [default: False]"
 )
+@click.option('--logfiledir', default=None,
+  help="Return the build process's logfile to this directory"
+)
 @click.argument("projectName")
 @click.argument("target")
 @click.pass_context
-def build(ctx, clean, live, projectname, target) :
+def build(ctx, clean, live, logfiledir, projectname, target) :
   print(f"Building {projectname}:{target}")
   data = getDataFromMajorDomo(f'/project/buildTarget/{projectname}/{target}')
   if data is None : return
+
+  config = ctx.obj
+  if not logfiledir :
+    if 'logFileDir' in config['config'] :
+      logfiledir = config['config']['logFileDir']
+
   data['projectName']   = projectname
   data['targetName']    = target
   data['clean']         = str(clean)
   data['live']          = str(live)
+  data['logFileDir']    = logfiledir
   data['rsyncHostName'] = platform.node()
   data['rsyncUserName'] = os.getlogin()
   data['verbosity']     = ctx.obj['config']['verbosity']

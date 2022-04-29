@@ -151,7 +151,7 @@ def registerPlugin(config, managers, natsClient) :
           "----------------rsync stderr------------------------",
         ]))
       if rsyncProc.returncode != 0 :
-        await reprotError(f"Could not rsync module files for {aPkgName}\n  from {origPath}\n  to {moduleDir}")
+        await reportError(f"Could not rsync module files for {aPkgName}\n  from {origPath}\n  to {moduleDir}")
         return
 
     updateCmd = [

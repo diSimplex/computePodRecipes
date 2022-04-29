@@ -4,6 +4,7 @@
 # documents....
 
 import asyncio
+import datetime
 import os
 import signal
 import yaml
@@ -16,6 +17,16 @@ from cputils.debouncingTaskRunner import \
   NatsLogger, FileLogger, MultiLogger, DebouncingTaskRunner
 from cpchef.utils import chefUtils
 import cpchef.plugins
+
+
+######################################################################
+# Defaults
+#texmfhomeDir   = os.path.join(os.sep, 'root', 'texmf')
+#contextCmdPath = '/root/ConTeXt/tex/texmf-linux-64/bin/context'
+rsyncCmdPath    = '/usr/bin/rsync'
+localLogFileDir = '/tmp/chefLogs'
+#privateKeyPath = "/config/playGround-rsync-rsa"
+######################################################################
 
 def registerPlugin(config, managers, natsClient) :
   print("Registering ConTeXt typeset plugin via registerPlugin")
@@ -31,6 +42,27 @@ def registerPlugin(config, managers, natsClient) :
       }
     )
     return None
+
+  async def reportDone(msg) :
+    await natsClient.sendMessage(
+      "done.build.getExternalDependencies.context",
+      {
+        'retCode' : 0,
+        'message' : msg
+      }
+    )
+
+  async def reportInfo(msg) :
+    await natsClient.sendMessage(
+      "logger.getExternalDependencies.context",
+      msg
+    )
+
+  async def reportDebug(msg) :
+    await natsClient.sendMessage(
+      "logger.getExternalDependencies.context",
+      msg
+    )
 
   async def checkForValue(aKey, data, default, msg) :
     if aKey in data and data[aKey] : return data[aKey]
@@ -56,6 +88,7 @@ def registerPlugin(config, managers, natsClient) :
     if not (rsyncUserName := await checkForValue('rsyncUserName', data, None, "rsyncUserName not specified")) : return
     if not (clean := await checkForValue('clean', data, str(False), "clean not specified")) : return
     if not (live := await checkForValue('live', data, str(False), "live logging not specified")) : return
+    if not (logFileDir := await checkForValue('logFileDir', data, str(False), "logFileDir not specified")) : return
 
     verbosity = 0
     if 'verbosity' in data : verbosity = data['verbosity']
@@ -124,7 +157,8 @@ def registerPlugin(config, managers, natsClient) :
         'CHEF_clean'             : str(clean)
       }
     }
-    logFilePath = f"/tmp/chefLogs/{projectName}/{targetName}.log"
+    timeNow = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S-%f')
+    logFilePath = f"{localLogFileDir}/{projectName}/{targetName}/{timeNow}.log"
     if live == str(True) :
       taskLog = MultiLogger([
         FileLogger("stdout", 5),
@@ -160,6 +194,47 @@ def registerPlugin(config, managers, natsClient) :
     returnCode  = theTask.getReturnCode()
     elapsedTime = theTask.getElapsedTime()
     await taskLog.write(f"\nreturn code: {returnCode}\nelapsed time: {str(elapsedTime)}")
+    await taskLog.close()
+
+    if logFileDir != str(False) :
+      if logFileDir.startswith('~') :
+        logFileDir = logFileDir.lstrip('~/')
+      rsyncCmd = [
+        rsyncCmdPath,
+        '-av',
+        localLogFileDir+os.sep,
+        f"{rsyncUserName}@{rsyncHostName}:{logFileDir}{os.sep}"
+      ]
+      await reportDebug(" ".join(rsyncCmd))
+      rsyncEnv = {
+        'RSYNC_RSH' : f"ssh -i {privateKeyPath} -o UserKnownHostsFile={hostPublicKeyPath}"
+      }
+      rsyncProc = await asyncio.create_subprocess_exec(
+        *rsyncCmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        env=rsyncEnv
+      )
+      projTaskName = f"{projectName}:{taskName}"
+      stdout, stderr = await rsyncProc.communicate()
+      await reportInfo(f'rsync logs for{projTaskName} exited with {rsyncProc.returncode}')
+      if stdout:
+        await reportDebug("\n".join([
+          projTaskName,
+          "----------------rsync stdout------------------------",
+          stdout.decode(),
+          "----------------rsync stdout------------------------",
+        ]))
+      if stderr:
+        await reportDebug("\n".join([
+          projTaskName,
+          "----------------rsync stderr------------------------",
+          stderr.decode(),
+          "----------------rsync stderr------------------------",
+        ]))
+      if rsyncProc.returncode != 0 :
+        await reportError(f"Could not rsync log files for {projTaskName}\n  from {localLogFileDir}\n  to {logFileDir}")
+
     await natsClient.sendMessage('done.'+subject[0], {
       'retCode'     : returnCode,
       'elapsedTime' : str(elapsedTime)
