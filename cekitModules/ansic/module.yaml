@@ -7,9 +7,9 @@
 
 schema_version: 1
 
-name: gcc
+name: ansic
 version: 1.0
-description: Installs the GCC compilation tools
+description: Installs the GCC and CLANG compilation tools
 
 packages:
   manager: apk
@@ -18,3 +18,4 @@ packages:
     - gpp
     - make
     - ninja-build
+    - clang
